@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Production build
+dist/
+
+# Git automated script
+sync_github.mjs
+
+# Environment variables & secrets
+.env
+.env.*
+
+# Logs and system files
+*.log
+.DS_Store
+Thumbs.db
