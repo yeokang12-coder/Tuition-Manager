@@ -7,12 +7,12 @@ import { StatsDashboard } from './components/StatsDashboard';
 import { SettingsView } from './components/SettingsView';
 import { LoginModal } from './components/LoginModal';
 import { Student, TutorProfile, MonthStats, Teacher } from './types';
-import { api } from './api/client';
+import { api, removeStoredTeacherId } from './api/client';
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<string>('calendar');
   
-  // Format current year & month (e.g. "2026-09")
+  // Format current year & month (e.g. "2026-11")
   const today = new Date();
   const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   const [selectedMonth, setSelectedMonth] = useState<string>(defaultMonth);
@@ -23,18 +23,18 @@ export const App: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [profile, setProfile] = useState<TutorProfile>({
     id: 1,
-    name: '陈老师',
-    phone: '012-345 6789',
+    name: '补习老师',
+    phone: '',
     email: '',
     bank_name: 'Maybank',
-    bank_account: '1140 1234 5678',
-    bank_holder: 'TAN CHEN PIN',
-    duitnow_id: '0123456789',
+    bank_account: '',
+    bank_holder: '',
+    duitnow_id: '',
     qr_image: '',
     welcome_note: '感谢家长的支持与信任！请确认以下对账明细：',
   });
   const [stats, setStats] = useState<MonthStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Deep linking helper
   const [receiptStudentId, setReceiptStudentId] = useState<number | undefined>(undefined);
@@ -45,7 +45,11 @@ export const App: React.FC = () => {
     const initTeacher = async () => {
       try {
         const teacher = await api.getCurrentTeacher();
-        setCurrentTeacher(teacher);
+        if (teacher) {
+          setCurrentTeacher(teacher);
+        } else {
+          setIsLoginModalOpen(true);
+        }
       } catch (err) {
         console.warn('Teacher not logged in or invalid, opening login modal', err);
         setIsLoginModalOpen(true);
@@ -55,6 +59,7 @@ export const App: React.FC = () => {
   }, []);
 
   const loadAllData = async () => {
+    if (!currentTeacher) return;
     try {
       setLoading(true);
       const [studentsData, profileData, statsData] = await Promise.all([
@@ -79,6 +84,7 @@ export const App: React.FC = () => {
   }, [currentTeacher?.id, selectedMonth]);
 
   const refreshStats = async () => {
+    if (!currentTeacher) return;
     try {
       const statsData = await api.getStats(selectedMonth);
       setStats(statsData);
@@ -88,6 +94,7 @@ export const App: React.FC = () => {
   };
 
   const refreshStudents = async () => {
+    if (!currentTeacher) return;
     try {
       const data = await api.getStudents();
       setStudents(data);
@@ -97,6 +104,7 @@ export const App: React.FC = () => {
   };
 
   const refreshProfile = async () => {
+    if (!currentTeacher) return;
     try {
       const data = await api.getProfile();
       setProfile(data);
@@ -111,9 +119,16 @@ export const App: React.FC = () => {
   const handleLoginSuccess = (teacher: Teacher) => {
     setCurrentTeacher(teacher);
     setIsLoginModalOpen(false);
-    // Reset filters
     setCalendarStudentFilter('all');
     setReceiptStudentId(undefined);
+  };
+
+  const handleLogout = () => {
+    removeStoredTeacherId();
+    setCurrentTeacher(null);
+    setStudents([]);
+    setStats(null);
+    setIsLoginModalOpen(true);
   };
 
   // Navigations from student manager
@@ -137,10 +152,27 @@ export const App: React.FC = () => {
         setSelectedMonth={setSelectedMonth}
         currentTeacher={currentTeacher}
         onSwitchTeacher={() => setIsLoginModalOpen(true)}
+        onLogout={handleLogout}
       />
 
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-        {loading ? (
+      <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        {!currentTeacher ? (
+          <div className="flex flex-col items-center justify-center py-28 text-center px-4">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-4 shadow-sm">
+              <span className="text-2xl">🔐</span>
+            </div>
+            <h2 className="text-xl font-bold text-slate-800">请先登录老师工作账号</h2>
+            <p className="text-sm text-slate-500 mt-1 max-w-sm">
+              为了保障学生与账单数据的独立与私密，请登录或注册您的老师称呼进入工作台。
+            </p>
+            <button
+              onClick={() => setIsLoginModalOpen(true)}
+              className="mt-5 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md shadow-indigo-100 transition-all"
+            >
+              立即登录 / 注册
+            </button>
+          </div>
+        ) : loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-slate-400">
             <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3" />
             <p className="text-sm font-medium">正在读取数据...</p>

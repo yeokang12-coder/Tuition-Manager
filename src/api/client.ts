@@ -25,11 +25,11 @@ import {
 
 const TEACHER_STORAGE_KEY = 'tutor_current_teacher_id';
 
-export const getStoredTeacherId = (): number => {
+export const getStoredTeacherId = (): number | null => {
   const val = localStorage.getItem(TEACHER_STORAGE_KEY);
-  if (!val) return 1;
+  if (!val) return null;
   const num = parseInt(val, 10);
-  return isNaN(num) ? 1 : num;
+  return isNaN(num) ? null : num;
 };
 
 export const setStoredTeacherId = (id: number): void => {

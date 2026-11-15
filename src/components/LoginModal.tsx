@@ -28,6 +28,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     if (isOpen) {
       loadTeachersList();
       setError(null);
+      setName('');
+      setPassword('');
     }
   }, [isOpen]);
 
@@ -35,9 +37,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     try {
       const list = await api.getTeachers();
       setTeachersList(list);
-      if (list.length > 0 && !name) {
-        setName(list[0].name);
-      }
     } catch (err) {
       console.error('Failed to load teachers list', err);
     }
@@ -54,7 +53,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
     if (!password) {
-      setError('请输入登录密码/PIN码');
+      setError('请输入登录密码');
       return;
     }
 
@@ -94,7 +93,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center mb-3 shadow-inner">
             <Sparkles className="w-6 h-6 text-amber-300" />
           </div>
-          <h2 className="text-xl font-bold tracking-tight">大马补习助手 • 老师工作台</h2>
+          <h2 className="text-xl font-bold tracking-tight">大马补习助手 • 老师登录</h2>
           <p className="text-xs text-indigo-100 mt-1">
             独立多账号体系，每位老师享有完全隔离的学生、课表与对账数据
           </p>
@@ -149,7 +148,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           {mode === 'login' && teachersList.length > 0 && (
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                快速选择老师：
+                请选择您的称呼：
               </label>
               <div className="flex flex-wrap gap-2">
                 {teachersList.map((t) => (
@@ -183,7 +182,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder={mode === 'login' ? '例如：陈老师 或 林老师' : '例如：林老师 (Teacher Lim)'}
+                placeholder={mode === 'login' ? '例如：杨老师 或 林老师' : '例如：林老师 (Teacher Lim)'}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
@@ -195,19 +194,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-semibold text-slate-700">
-                登录密码 / PIN码 <span className="text-rose-500">*</span>
+                登录密码 <span className="text-rose-500">*</span>
               </label>
-              {mode === 'login' && (
-                <span className="text-[11px] text-slate-400">
-                  初始账号默认密码: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-600">123456</code>
-                </span>
-              )}
             </div>
             <div className="relative">
               <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="password"
-                placeholder="请输入密码 / PIN码"
+                placeholder="请输入登录密码"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 focus:bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
@@ -219,7 +213,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           {mode === 'register' && (
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                手机联系电话 <span className="text-slate-400 font-normal">(选填，用于对账单展示)</span>
+                手机联系电话 <span className="text-slate-400 font-normal">(选填，用于收据展示)</span>
               </label>
               <div className="relative">
                 <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
