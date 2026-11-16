@@ -66,63 +66,6 @@ async function ensureInitialized() {
         ...defaultTeacher,
         password: '123'
       });
-
-      // Sample students
-      const studentsCol = collection(firestore, 'students');
-      await addDoc(studentsCol, {
-        id: 1,
-        teacher_id: 1,
-        name: '张小明 (Lucas)',
-        grade: '初中一 / Form 1',
-        subjects: '数学、科学',
-        parent_name: '张妈妈',
-        parent_phone: '016-888 1234',
-        billing_type: 'per_hour',
-        default_rate: 60,
-        weekly_schedules: [
-          { day_of_week: 2, start_time: '19:00', end_time: '20:30', duration_hours: 1.5, subject: '数学', rate: 60 },
-          { day_of_week: 6, start_time: '10:00', end_time: '11:30', duration_hours: 1.5, subject: '科学', rate: 60 }
-        ],
-        notes: '每周二、六固定上课',
-        active: 1,
-        created_at: new Date().toISOString()
-      });
-
-      await addDoc(studentsCol, {
-        id: 2,
-        teacher_id: 1,
-        name: '李佳怡 (Chloe)',
-        grade: '小学五年级 / Std 5',
-        subjects: '华文、数学',
-        parent_name: '李先生',
-        parent_phone: '019-777 5678',
-        billing_type: 'per_hour',
-        default_rate: 50,
-        weekly_schedules: [
-          { day_of_week: 0, start_time: '14:00', end_time: '15:30', duration_hours: 1.5, subject: '华文', rate: 50 }
-        ],
-        notes: '周日下午上课',
-        active: 1,
-        created_at: new Date().toISOString()
-      });
-
-      await addDoc(studentsCol, {
-        id: 3,
-        teacher_id: 1,
-        name: '黄子轩 (Ethan)',
-        grade: '高一 / Form 4',
-        subjects: '高级数学 Add Math',
-        parent_name: '黄太太',
-        parent_phone: '012-999 8765',
-        billing_type: 'monthly',
-        default_rate: 240,
-        weekly_schedules: [
-          { day_of_week: 5, start_time: '19:30', end_time: '21:30', duration_hours: 2.0, subject: '高级数学', rate: 70 }
-        ],
-        notes: '每月包月结算',
-        active: 1,
-        created_at: new Date().toISOString()
-      });
     }
   } catch (err) {
     console.error('Error during auto-initialization:', err);
@@ -313,13 +256,42 @@ export const api = {
 
   async updateStudent(id: number, student: Partial<Student>): Promise<Student> {
     const docRef = doc(firestore, 'students', String(id));
-    await updateDoc(docRef, student);
     const snap = await getDoc(docRef);
-    return snap.data() as Student;
+    if (snap.exists()) {
+      await updateDoc(docRef, student);
+      const updatedSnap = await getDoc(docRef);
+      return updatedSnap.data() as Student;
+    }
+
+    // Fallback: search by query if created with auto DocID
+    const tid = getStoredTeacherId();
+    const q = query(collection(firestore, 'students'), where('teacher_id', '==', tid), where('id', '==', Number(id)));
+    const qSnap = await getDocs(q);
+    if (!qSnap.empty) {
+      const matchDoc = qSnap.docs[0];
+      await updateDoc(matchDoc.ref, student);
+      const updatedSnap = await getDoc(matchDoc.ref);
+      return updatedSnap.data() as Student;
+    }
+
+    throw new Error('Student not found');
   },
 
   async deleteStudent(id: number): Promise<void> {
-    await deleteDoc(doc(firestore, 'students', String(id)));
+    const docRef = doc(firestore, 'students', String(id));
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      await deleteDoc(docRef);
+      return;
+    }
+
+    // Fallback: search by query if created with auto DocID
+    const tid = getStoredTeacherId();
+    const q = query(collection(firestore, 'students'), where('teacher_id', '==', tid), where('id', '==', Number(id)));
+    const qSnap = await getDocs(q);
+    for (const d of qSnap.docs) {
+      await deleteDoc(d.ref);
+    }
   },
 
   // Classes
