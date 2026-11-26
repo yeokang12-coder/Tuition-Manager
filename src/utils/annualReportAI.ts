@@ -299,7 +299,7 @@ export async function generateWithGeminiAPI(apiKey: string, prompt: string): Pro
     throw new Error('请先输入 Gemini API Key');
   }
 
-  const models = ['gemini-3.8-flash', 'gemini-2.5-flash'];
+  const models = ['gemini-3.8-flash', 'gemini-3.8-flash-lite', 'gemini-2.5-flash'];
   let lastError = 'AI 请求失败';
 
   for (const model of models) {
@@ -334,8 +334,15 @@ export async function generateWithGeminiAPI(apiKey: string, prompt: string): Pro
       // ignore
     }
 
-    // Only retry next model if the model itself is unavailable/not found
-    if (res.status !== 404 && !lastError.includes('no longer available')) {
+    // Retry next fallback model if unavailable, not found, or temporarily overloaded (503/429)
+    const retryable =
+      res.status === 404 ||
+      res.status === 503 ||
+      res.status === 429 ||
+      lastError.includes('no longer available') ||
+      lastError.includes('high demand') ||
+      lastError.includes('overloaded');
+    if (!retryable) {
       break;
     }
   }
