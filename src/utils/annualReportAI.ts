@@ -299,57 +299,59 @@ export async function generateWithGeminiAPI(apiKey: string, prompt: string): Pro
     throw new Error('请先输入 Gemini API Key');
   }
 
-  const maxAttempts = 2;
-  let lastError = 'AI 请求失败';
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(trimmedKey)}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(trimmedKey)}`;
-    const res = await fetch(endpoint, {
+  let res: Response;
+  try {
+    res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.75,
-          maxOutputTokens: 900,
+          maxOutputTokens: 700,
         },
       }),
     });
-
-    if (res.ok) {
-      const data = await res.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) {
-        throw new Error('AI 未返回有效内容，请重试');
-      }
-      return text.trim();
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new Error('TIMEOUT: Google AI 响应超时（超过 15 秒）');
     }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
-    const errText = await res.text();
-    lastError = `API 请求失败 (${res.status})`;
-    try {
-      const parsed = JSON.parse(errText);
-      if (parsed?.error?.message) lastError = parsed.error.message;
-    } catch {
-      // ignore
+  if (res.ok) {
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      throw new Error('AI 未返回有效内容，请重试');
     }
+    return text.trim();
+  }
 
-    const isBusy =
-      res.status === 503 ||
-      res.status === 429 ||
-      lastError.includes('high demand') ||
-      lastError.includes('overloaded');
+  const errText = await res.text();
+  let lastError = `API 请求失败 (${res.status})`;
+  try {
+    const parsed = JSON.parse(errText);
+    if (parsed?.error?.message) lastError = parsed.error.message;
+  } catch {
+    // ignore
+  }
 
-    if (isBusy && attempt < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      continue;
-    }
+  const isBusy =
+    res.status === 503 ||
+    res.status === 429 ||
+    lastError.includes('high demand') ||
+    lastError.includes('overloaded');
 
-    if (isBusy) {
-      throw new Error('Google Gemini 服务器当前正处于高峰期（临时拥堵），请过几秒再试一次，或先使用「根据选项拼装草稿」。');
-    }
-
-    break;
+  if (isBusy) {
+    throw new Error('BUSY: Google Gemini 服务器当前正处于高峰期（临时拥堵）');
   }
 
   throw new Error(lastError);

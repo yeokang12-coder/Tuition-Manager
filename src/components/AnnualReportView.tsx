@@ -289,8 +289,25 @@ export const AnnualReportView: React.FC<AnnualReportViewProps> = ({
       setAiStatusMsg(mode === 'polish' ? 'AI 润色完成！您可以继续微调。' : 'AI 撰写完成！您可以继续手动修改。');
     } catch (err: any) {
       console.error('Gemini AI failed', err);
-      alert(`AI 生成失败：${err.message}\n\n已为您保留当前内容，您也可以检查 API Key 或使用「拼装草稿」功能。`);
-      setAiStatusMsg('');
+      const msg = String(err?.message || '');
+      if (mode === 'generate' && (msg.startsWith('TIMEOUT:') || msg.startsWith('BUSY:'))) {
+        const draft = synthesizeAnnualComment({
+          student: selectedStudent,
+          year: selectedYear,
+          stats: yearStats,
+          selectedTags,
+          customNotes,
+          ratings,
+          highlights,
+          nextYearGoal,
+          tone,
+        });
+        setComment(draft);
+        setAiStatusMsg('Google AI 响应较慢/拥堵，已自动改用内置拟人化引擎为您生成评语！');
+      } else {
+        alert(`AI 生成失败：${msg.replace(/^(TIMEOUT|BUSY):\s*/, '')}\n\n已为您保留当前内容，您也可以先使用「根据选项拼装草稿」功能。`);
+        setAiStatusMsg('');
+      }
     } finally {
       setAiLoading(false);
     }
