@@ -299,35 +299,46 @@ export async function generateWithGeminiAPI(apiKey: string, prompt: string): Pro
     throw new Error('请先输入 Gemini API Key');
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(trimmedKey)}`;
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.75,
-        maxOutputTokens: 900,
-      },
-    }),
-  });
+  const models = ['gemini-3.8-flash', 'gemini-2.5-flash'];
+  let lastError = 'AI 请求失败';
 
-  if (!res.ok) {
+  for (const model of models) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(trimmedKey)}`;
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.75,
+          maxOutputTokens: 900,
+        },
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        throw new Error('AI 未返回有效内容，请重试');
+      }
+      return text.trim();
+    }
+
     const errText = await res.text();
-    let message = `API 请求失败 (${res.status})`;
+    lastError = `API 请求失败 (${res.status})`;
     try {
       const parsed = JSON.parse(errText);
-      if (parsed?.error?.message) message = parsed.error.message;
+      if (parsed?.error?.message) lastError = parsed.error.message;
     } catch {
       // ignore
     }
-    throw new Error(message);
+
+    // Only retry next model if the model itself is unavailable/not found
+    if (res.status !== 404 && !lastError.includes('no longer available')) {
+      break;
+    }
   }
 
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error('AI 未返回有效内容，请重试');
-  }
-  return text.trim();
+  throw new Error(lastError);
 }
