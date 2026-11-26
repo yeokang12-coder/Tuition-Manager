@@ -88,6 +88,7 @@ export const AnnualReportView: React.FC<AnnualReportViewProps> = ({
 
   // Form state
   const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
+  const [customNotes, setCustomNotes] = useState<Record<string, string>>({});
   const [ratings, setRatings] = useState<AnnualReportRatings>(DEFAULT_RATINGS);
   const [highlights, setHighlights] = useState('');
   const [nextYearGoal, setNextYearGoal] = useState('');
@@ -150,6 +151,7 @@ export const AnnualReportView: React.FC<AnnualReportViewProps> = ({
 
         if (existingReport) {
           setSelectedTags(existingReport.selected_tags || {});
+          setCustomNotes(existingReport.custom_notes || {});
           setRatings(existingReport.ratings || DEFAULT_RATINGS);
           setHighlights(existingReport.highlights || '');
           setNextYearGoal(existingReport.next_year_goal || '');
@@ -158,6 +160,7 @@ export const AnnualReportView: React.FC<AnnualReportViewProps> = ({
           setComment(existingReport.comment || '');
         } else {
           setSelectedTags({});
+          setCustomNotes({});
           setRatings(DEFAULT_RATINGS);
           setHighlights('');
           setNextYearGoal('');
@@ -233,13 +236,14 @@ export const AnnualReportView: React.FC<AnnualReportViewProps> = ({
       year: selectedYear,
       stats: yearStats,
       selectedTags,
+      customNotes,
       ratings,
       highlights,
       nextYearGoal,
       tone,
     });
     setComment(draft);
-    setAiStatusMsg('已根据勾选标签与出勤数据自动拼装草稿，您可以继续手动修改。');
+    setAiStatusMsg('已根据勾选与手写补充自动生成拟人化评语，您可以继续微调。');
   };
 
   // AI Generate or Polish
@@ -272,6 +276,7 @@ export const AnnualReportView: React.FC<AnnualReportViewProps> = ({
         year: selectedYear,
         stats: yearStats,
         selectedTags,
+        customNotes,
         ratings,
         highlights,
         nextYearGoal,
@@ -298,6 +303,7 @@ export const AnnualReportView: React.FC<AnnualReportViewProps> = ({
       year: selectedYear,
       stats: yearStats,
       selectedTags,
+      customNotes,
       ratings,
       highlights,
       nextYearGoal,
@@ -335,6 +341,7 @@ export const AnnualReportView: React.FC<AnnualReportViewProps> = ({
         student_name: selectedStudent.name,
         year: selectedYear,
         selected_tags: selectedTags,
+        custom_notes: customNotes,
         ratings,
         highlights,
         comment,
@@ -631,6 +638,17 @@ export const AnnualReportView: React.FC<AnnualReportViewProps> = ({
                         );
                       })}
                     </div>
+
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      value={customNotes[dim.key] || ''}
+                      onChange={e =>
+                        setCustomNotes(prev => ({ ...prev, [dim.key]: e.target.value }))
+                      }
+                      placeholder={dim.placeholder}
+                      className="w-full px-3 py-1.5 text-xs bg-white/90 border border-slate-200/90 rounded-lg text-slate-700 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    />
                   </div>
                 );
               })}
@@ -644,6 +662,8 @@ export const AnnualReportView: React.FC<AnnualReportViewProps> = ({
                 </label>
                 <input
                   type="text"
+                  autoComplete="off"
+                  name="annual_highlights"
                   value={highlights}
                   onChange={e => setHighlights(e.target.value)}
                   placeholder="例：UASA 数学从 62 分进步到 81 分"
@@ -656,6 +676,8 @@ export const AnnualReportView: React.FC<AnnualReportViewProps> = ({
                 </label>
                 <input
                   type="text"
+                  autoComplete="off"
+                  name="annual_next_year_goal"
                   value={nextYearGoal}
                   onChange={e => setNextYearGoal(e.target.value)}
                   placeholder="例：多练习应用题步骤表达"

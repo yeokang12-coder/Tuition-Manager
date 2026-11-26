@@ -145,6 +145,7 @@ export interface AnnualReport {
   student_name: string;
   year: string;
   selected_tags: Record<string, string[]>;
+  custom_notes?: Record<string, string>;
   ratings: AnnualReportRatings;
   highlights: string;
   comment: string;
