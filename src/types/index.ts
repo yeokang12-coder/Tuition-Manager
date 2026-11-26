@@ -118,3 +118,40 @@ export interface Teacher {
   welcome_note?: string;
   created_at?: string;
 }
+
+export type AnnualReportTone = 'warm' | 'professional' | 'concise';
+
+export interface AnnualReportRatings {
+  focus: number;
+  homework: number;
+  progress: number;
+  exam: number;
+}
+
+export interface AnnualReportStats {
+  totalSessions: number;
+  completedSessions: number;
+  completedHours: number;
+  leaveCount: number;
+  makeupCount: number;
+  attendanceRate: number;
+  subjects: string[];
+}
+
+export interface AnnualReport {
+  id: number;
+  teacher_id?: number;
+  student_id: number;
+  student_name: string;
+  year: string;
+  selected_tags: Record<string, string[]>;
+  ratings: AnnualReportRatings;
+  highlights: string;
+  comment: string;
+  next_year_goal: string;
+  tone: AnnualReportTone;
+  show_attendance: boolean;
+  stats_snapshot?: AnnualReportStats;
+  updated_at?: string;
+  created_at?: string;
+}

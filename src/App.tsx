@@ -5,6 +5,7 @@ import { ReceiptMaker } from './components/ReceiptMaker';
 import { StudentManager } from './components/StudentManager';
 import { StatsDashboard } from './components/StatsDashboard';
 import { SettingsView } from './components/SettingsView';
+import { AnnualReportView } from './components/AnnualReportView';
 import { LoginModal } from './components/LoginModal';
 import { Student, TutorProfile, MonthStats, Teacher } from './types';
 import { api, removeStoredTeacherId } from './api/client';
@@ -38,6 +39,7 @@ export const App: React.FC = () => {
 
   // Deep linking helper
   const [receiptStudentId, setReceiptStudentId] = useState<number | undefined>(undefined);
+  const [annualStudentId, setAnnualStudentId] = useState<number | undefined>(undefined);
   const [calendarStudentFilter, setCalendarStudentFilter] = useState<number | 'all'>('all');
 
   // Initialize teacher on app start
@@ -143,6 +145,11 @@ export const App: React.FC = () => {
     refreshStats();
   };
 
+  const handleGoToAnnualReport = (studentId: number) => {
+    setAnnualStudentId(studentId);
+    setCurrentTab('annual');
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       <Navbar
@@ -206,6 +213,15 @@ export const App: React.FC = () => {
                 onRefreshStudents={refreshStudents}
                 onGoToReceipt={handleGoToReceipt}
                 onGoToCalendar={handleGoToCalendar}
+                onGoToAnnualReport={handleGoToAnnualReport}
+              />
+            )}
+
+            {currentTab === 'annual' && (
+              <AnnualReportView
+                students={students}
+                tutorProfile={profile}
+                initialStudentId={annualStudentId}
               />
             )}
 

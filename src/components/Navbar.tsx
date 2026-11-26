@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Receipt, Users, BarChart3, Settings, Sparkles, User, RefreshCw, LogOut } from 'lucide-react';
+import { Calendar, Receipt, Users, BarChart3, Settings, Sparkles, User, RefreshCw, LogOut, Award } from 'lucide-react';
 import { Teacher } from '../types';
 
 interface NavbarProps {
@@ -25,6 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'calendar', label: '课表与打卡', icon: Calendar },
     { id: 'receipt', label: '对账收据', icon: Receipt },
     { id: 'students', label: '学生管理', icon: Users },
+    { id: 'annual', label: '年度总结', icon: Award },
     { id: 'stats', label: '财务与统计', icon: BarChart3 },
     { id: 'settings', label: '老师设置', icon: Settings },
   ];

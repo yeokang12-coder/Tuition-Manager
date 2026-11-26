@@ -20,7 +20,8 @@ import {
   LessonSession,
   BillReceipt,
   MonthStats,
-  Teacher
+  Teacher,
+  AnnualReport
 } from '../types';
 
 const TEACHER_STORAGE_KEY = 'tutor_current_teacher_id';
@@ -685,5 +686,90 @@ export const api = {
       paid_amount: paidAmount,
       pending_amount: pendingAmount
     };
+  },
+
+  // Annual Performance Reports
+  async getAnnualReportsByYear(year: string): Promise<AnnualReport[]> {
+    await ensureInitialized();
+    const tid = getStoredTeacherId();
+    const q = query(
+      collection(firestore, 'annual_reports'),
+      where('teacher_id', '==', tid),
+      where('year', '==', year)
+    );
+    const snap = await getDocs(q);
+    const list: AnnualReport[] = [];
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      list.push({
+        id: Number(data.id || 0),
+        teacher_id: Number(data.teacher_id),
+        student_id: Number(data.student_id),
+        student_name: data.student_name || '',
+        year: String(data.year),
+        selected_tags: data.selected_tags || {},
+        ratings: data.ratings || { focus: 5, homework: 5, progress: 5, exam: 4 },
+        highlights: data.highlights || '',
+        comment: data.comment || '',
+        next_year_goal: data.next_year_goal || '',
+        tone: data.tone || 'warm',
+        show_attendance: data.show_attendance !== false,
+        stats_snapshot: data.stats_snapshot,
+        updated_at: data.updated_at,
+        created_at: data.created_at
+      });
+    });
+    return list;
+  },
+
+  async getAnnualReport(studentId: number, year: string): Promise<AnnualReport | null> {
+    await ensureInitialized();
+    const tid = getStoredTeacherId();
+    const docId = `annual_${tid}_${studentId}_${year}`;
+    const docRef = doc(firestore, 'annual_reports', docId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      return {
+        id: Number(data.id || 0),
+        teacher_id: Number(data.teacher_id),
+        student_id: Number(data.student_id),
+        student_name: data.student_name || '',
+        year: String(data.year),
+        selected_tags: data.selected_tags || {},
+        ratings: data.ratings || { focus: 5, homework: 5, progress: 5, exam: 4 },
+        highlights: data.highlights || '',
+        comment: data.comment || '',
+        next_year_goal: data.next_year_goal || '',
+        tone: data.tone || 'warm',
+        show_attendance: data.show_attendance !== false,
+        stats_snapshot: data.stats_snapshot,
+        updated_at: data.updated_at,
+        created_at: data.created_at
+      };
+    }
+    return null;
+  },
+
+  async saveAnnualReport(
+    report: Omit<AnnualReport, 'id' | 'created_at' | 'updated_at'> & { id?: number }
+  ): Promise<AnnualReport> {
+    const tid = getStoredTeacherId();
+    if (!tid) throw new Error('请先登录老师账号');
+    const docId = `annual_${tid}_${report.student_id}_${report.year}`;
+    const docRef = doc(firestore, 'annual_reports', docId);
+    const existing = await getDoc(docRef);
+    const now = new Date().toISOString();
+
+    const payload: AnnualReport = {
+      ...report,
+      id: existing.exists() ? Number(existing.data().id || nextId()) : (report.id || nextId()),
+      teacher_id: tid,
+      created_at: existing.exists() ? (existing.data().created_at || now) : now,
+      updated_at: now
+    };
+
+    await setDoc(docRef, payload);
+    return payload;
   }
 };

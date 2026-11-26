@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Users, Plus, Search, Edit2, Trash2, Phone, 
-  Receipt, Calendar, X, Clock, Sparkles 
+  Receipt, Calendar, X, Clock, Sparkles, Award 
 } from 'lucide-react';
 import { Student, BillingType, WeeklyScheduleSlot } from '../types';
 import { api } from '../api/client';
@@ -12,6 +12,7 @@ interface StudentManagerProps {
   onRefreshStudents: () => void;
   onGoToReceipt: (studentId: number) => void;
   onGoToCalendar: (studentId?: number) => void;
+  onGoToAnnualReport?: (studentId: number) => void;
 }
 
 const DAY_NAMES = ['周日 (Sun)', '周一 (Mon)', '周二 (Tue)', '周三 (Wed)', '周四 (Thu)', '周五 (Fri)', '周六 (Sat)'];
@@ -31,6 +32,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
   onRefreshStudents,
   onGoToReceipt,
   onGoToCalendar,
+  onGoToAnnualReport,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -415,6 +417,16 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                       制作对账卡片
                     </button>
                   </div>
+
+                  {onGoToAnnualReport && (
+                    <button
+                      onClick={() => onGoToAnnualReport(student.id)}
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-xs font-semibold transition-all border border-amber-200/80"
+                    >
+                      <Award className="w-3.5 h-3.5" />
+                      撰写年度表现总结
+                    </button>
+                  )}
                 </div>
               </div>
             );
