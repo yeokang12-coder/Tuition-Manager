@@ -299,11 +299,11 @@ export async function generateWithGeminiAPI(apiKey: string, prompt: string): Pro
     throw new Error('请先输入 Gemini API Key');
   }
 
-  const models = ['gemini-3.8-flash', 'gemini-3.8-flash-lite', 'gemini-2.5-flash'];
+  const maxAttempts = 2;
   let lastError = 'AI 请求失败';
 
-  for (const model of models) {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(trimmedKey)}`;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(trimmedKey)}`;
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -334,17 +334,22 @@ export async function generateWithGeminiAPI(apiKey: string, prompt: string): Pro
       // ignore
     }
 
-    // Retry next fallback model if unavailable, not found, or temporarily overloaded (503/429)
-    const retryable =
-      res.status === 404 ||
+    const isBusy =
       res.status === 503 ||
       res.status === 429 ||
-      lastError.includes('no longer available') ||
       lastError.includes('high demand') ||
       lastError.includes('overloaded');
-    if (!retryable) {
-      break;
+
+    if (isBusy && attempt < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      continue;
     }
+
+    if (isBusy) {
+      throw new Error('Google Gemini 服务器当前正处于高峰期（临时拥堵），请过几秒再试一次，或先使用「根据选项拼装草稿」。');
+    }
+
+    break;
   }
 
   throw new Error(lastError);
